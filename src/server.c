@@ -87,6 +87,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
+    printf("GET_D20");
     
     ///////////////////
     // IMPLEMENT ME! //
@@ -133,6 +134,7 @@ void get_file(int fd, struct cache *cache, char *request_path)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    printf("GET_FILE");
 }
 
 /**
@@ -156,6 +158,10 @@ void handle_http_request(int fd, struct cache *cache)
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
 
+    char method[64];
+    char path[64];
+    char http[64];
+
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
 
@@ -164,17 +170,36 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
+    resp_404(fd); //newfd or listenfd, an int
 
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
 
     // Read the first two components of the first line of the request 
+    sscanf(request, "%s %s %s", method, path, http);
+
+    printf("method: \"%s\"\n", method);
+    printf("path: \"%s\"\n", path);
+    printf("http: \"%s\"\n", http);
  
     // If GET, handle the get endpoints
+    if (strcmp(method, "GET") == 0)
+    {
+        if(strcmp(path, "/d20") == 0)
+        {
+            get_d20(fd);
+        } else
+        {
+            printf("not d20\n");
+        }
+    }
 
     //    Check if it's /d20 and handle that special case
     //    Otherwise serve the requested file by calling get_file()
+
+
+    
 
 
     // (Stretch) If POST, handle the post request
@@ -201,7 +226,6 @@ int main(void)
 
     printf("webserver: waiting for connections on port %s...\n", PORT);
 
-    resp_404(newfd); //newfd or listenfd, an int
 
     // This is the main loop that accepts incoming connections and
     // responds to the request. The main parent process
@@ -217,6 +241,8 @@ int main(void)
             perror("accept");
             continue;
         }
+
+        
 
         // Print out a message that we got the connection
         inet_ntop(their_addr.ss_family,
