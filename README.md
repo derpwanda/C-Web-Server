@@ -96,6 +96,12 @@ _Read through all the main and stretch goals before writing any code to get an o
 
    Read the three components from the first line of the HTTP header. Hint: `sscanf()`.
 
+   <!-- myNOTE: 
+     scanf reads from the standard input stream stdin. 
+     fscanf reads from the named input stream. 
+     sscanf reads from the character string s. 
+   Each function reads characters, interprets them according to a format, and stores the results in its arguments. -->
+
    Right after that, call the appropriate handler based on the request type
    (`GET`, `POST`) and the path (`/d20` or other file path.) You can start by
    just checking for `/d20` and then add arbitrary files later.
