@@ -17,7 +17,7 @@ Ethernet -- deals with sending data on the LAN
 
 //sscanf();
 
-#include <stdio.h>
+// #include <stdio.h>
 
 /*
 GET /foobar HTTP/1.1
@@ -26,7 +26,7 @@ Connection: close
 X-Header: whatever
 */
 
-int main(void){
+/* int main(void){
     char *s = "GET /foobar HTTP/1.1\nHost: www.example.com\nConnection:close\nX-Header: whatever";
 
     char method[200];
@@ -36,7 +36,7 @@ int main(void){
 
     printf("method: \"%s\"\n", method);
     printf("path: \"%s\"\n", path);
-}
+} */
 
 // #include <stdio.h>
 // #include <string.h>
