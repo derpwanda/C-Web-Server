@@ -136,7 +136,7 @@ void resp_404(int fd)
     char *mime_type;
 
     // Fetch the 404.html file
-    snprintf(filepath, sizeof filepath, "%s/cat.jpg", SERVER_ROOT);
+    snprintf(filepath, sizeof filepath, "%s/404.html", SERVER_ROOT);
     filedata = file_load(filepath);
 
     if (filedata == NULL) {
@@ -186,7 +186,7 @@ void get_file(int fd, struct cache *cache, char *request_path)
     file_free(filedata);
 
     // (void)fd; 
-    // (void)cache;
+    (void)cache;
     // (void)request_path;
 }
 
