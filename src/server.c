@@ -118,8 +118,6 @@ void get_d20(int fd)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
-    // send_response(fd, "HTTP/1.1 404 NOT FOUND", mime_type, filedata->data, filedata->size);
-
     send_response(fd, "HTTP/1.1 200 OK", "text/plain", number, sizeof(number));
 
     // file_free(number);
@@ -162,10 +160,34 @@ void get_file(int fd, struct cache *cache, char *request_path)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
-    printf("GET_FILE");
-    (void)fd; 
-    (void)cache;
-    (void)request_path;
+    char filepath[4096];
+    struct file_data *filedata; 
+    char *mime_type;
+
+
+    if (strcmp(request_path, "/index.html") == 0)
+    {
+        sprintf(filepath, "%s/index.html", SERVER_ROOT);
+    }else
+    {
+        sprintf(filepath, "%s%s", SERVER_ROOT, request_path);
+    }
+    
+    
+    filedata = file_load(filepath);
+    if (filedata == NULL) {
+        resp_404(fd);
+    }
+
+    mime_type = mime_type_get(filepath);
+
+    send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+
+    file_free(filedata);
+
+    // (void)fd; 
+    // (void)cache;
+    // (void)request_path;
 }
 
 /**
@@ -218,21 +240,23 @@ void handle_http_request(int fd, struct cache *cache)
     // If GET, handle the get endpoints
     if (strcmp(method, "GET") == 0)
     {
+    //    Check if it's /d20 and handle that special case
         if(strcmp(path, "/d20") == 0)
         {
             get_d20(fd);
         } else
+    //    Otherwise serve the requested file by calling get_file()
         {
-            resp_404(fd); //newfd or listenfd, an int            
+            get_file(fd, cache, path);
         }
+        
+        resp_404(fd); //newfd or listenfd, an int            
     }
 
-    //    Check if it's /d20 and handle that special case
-    //    Otherwise serve the requested file by calling get_file()
 
 
     //stop warnings
-    (void)cache;
+    // (void)cache;
 
 
     // (Stretch) If POST, handle the post request
