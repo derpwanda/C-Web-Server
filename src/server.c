@@ -73,7 +73,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
                 "Connection: close\n"
                 "Content-Length: %d\n"
                 "Content-Type: %s\n"
-                "Date: %s",
+                "Date: %s\n",
                 header, 
                 content_length, 
                 content_type, 
