@@ -59,16 +59,32 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     // IMPLEMENT ME! //
     ///////////////////
 
-    int response_length = sprintf(response, "%s\n"
+    time_t t = time(NULL);
+    
+    struct tm *local_time = localtime(&t);
+    //the string returned by localtime already has a \n
+
+    char *timestamp = asctime(local_time); 
+    //asctime converts tm struct to a timestamp
+
+    int response_length = sprintf(
+                response, 
+                "%s\n"
                 "Connection: close\n"
                 "Content-Length: %d\n"
                 "Content-Type: %s\n"
-                "\n"
-                "%s\n",
-                header, content_length, content_type, response_body);
+                "Date: %s",
+                header, 
+                content_length, 
+                content_type, 
+                timestamp);
     
-    printf("response_length: %d\n", response_length);
-    printf("RESPONSE: %s\n", response);
+    //make the body interpretation agnostic
+    memcpy(response + response_length, response_body, content_length);
+    response_length += content_length;
+
+    // printf("response_length: %d\n", response_length);
+    // printf("RESPONSE: %s\n", response);
 
     // Send it all!
     int rv = send(fd, response, response_length, 0);
@@ -78,6 +94,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     }
 
     return rv;
+
 }
 
 
@@ -87,17 +104,28 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-    printf("GET_D20");
     
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
-
+    char number[16];
+    // printf("INSIDE GET_D20\n");
+    int random_num = rand() % 20 + 1;
+    // printf("%d\n", random_num);
+    sprintf(number, "%d\n", random_num);
     // Use send_response() to send it back as text/plain data
 
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    // send_response(fd, "HTTP/1.1 404 NOT FOUND", mime_type, filedata->data, filedata->size);
+
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", number, sizeof(number));
+
+    // file_free(number);
+
+    //stop warnings
+    // (void)fd;
 }
 
 /**
@@ -110,7 +138,7 @@ void resp_404(int fd)
     char *mime_type;
 
     // Fetch the 404.html file
-    snprintf(filepath, sizeof filepath, "%s/404.html", SERVER_FILES);
+    snprintf(filepath, sizeof filepath, "%s/cat.jpg", SERVER_ROOT);
     filedata = file_load(filepath);
 
     if (filedata == NULL) {
@@ -135,6 +163,9 @@ void get_file(int fd, struct cache *cache, char *request_path)
     // IMPLEMENT ME! //
     ///////////////////
     printf("GET_FILE");
+    (void)fd; 
+    (void)cache;
+    (void)request_path;
 }
 
 /**
@@ -148,6 +179,8 @@ char *find_start_of_body(char *header)
     ///////////////////
     // IMPLEMENT ME! // (Stretch)
     ///////////////////
+    (void)header;
+    return NULL; //stops control reaches end of non-void function
 }
 
 /**
@@ -170,7 +203,6 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
-    resp_404(fd); //newfd or listenfd, an int
 
     ///////////////////
     // IMPLEMENT ME! //
@@ -179,9 +211,9 @@ void handle_http_request(int fd, struct cache *cache)
     // Read the first two components of the first line of the request 
     sscanf(request, "%s %s %s", method, path, http);
 
-    printf("method: \"%s\"\n", method);
-    printf("path: \"%s\"\n", path);
-    printf("http: \"%s\"\n", http);
+    // printf("method: \"%s\"\n", method);
+    // printf("path: \"%s\"\n", path);
+    // printf("http: \"%s\"\n", http);
  
     // If GET, handle the get endpoints
     if (strcmp(method, "GET") == 0)
@@ -191,7 +223,7 @@ void handle_http_request(int fd, struct cache *cache)
             get_d20(fd);
         } else
         {
-            printf("not d20\n");
+            resp_404(fd); //newfd or listenfd, an int            
         }
     }
 
@@ -199,7 +231,8 @@ void handle_http_request(int fd, struct cache *cache)
     //    Otherwise serve the requested file by calling get_file()
 
 
-    
+    //stop warnings
+    (void)cache;
 
 
     // (Stretch) If POST, handle the post request
