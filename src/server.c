@@ -136,9 +136,9 @@ void resp_404(int fd)
     char *mime_type;
 
     // Fetch the 404.html file
-    snprintf(filepath, sizeof filepath, "%s/404.html", SERVER_ROOT);
-    filedata = file_load(filepath);
+    snprintf(filepath, sizeof filepath, "%s/404.html", SERVER_FILES);
 
+    filedata = file_load(filepath);
     if (filedata == NULL) {
         // TODO: make this non-fatal
         fprintf(stderr, "cannot find system 404 file\n");
