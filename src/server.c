@@ -259,7 +259,16 @@ void handle_http_request(int fd, struct cache *cache)
         resp_404(fd); //newfd or listenfd, an int            
     }
 
+    //    When a file is requested, first check to see if the path to the file is in
+    //    the cache (use the file path as the key).
 
+    //    If it's there, serve it back.
+
+    //    If it's not there:
+
+    //    Load the file from disk (see `file.c`)
+    //    Store it in the cache
+    //    Serve it
 
     //stop warnings
     // (void)cache;
