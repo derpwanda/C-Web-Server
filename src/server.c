@@ -167,16 +167,22 @@ void get_file(int fd, struct cache *cache, char *request_path)
 
     if (strcmp(request_path, "/index.html") == 0)
     {
-        sprintf(filepath, "%s/index.html", SERVER_ROOT);
+        // sprintf(filepath, "%s/index.html", SERVER_ROOT); //works too
+        snprintf(filepath, sizeof filepath, "%s/index.html", SERVER_ROOT);
     }else
     {
-        sprintf(filepath, "%s%s", SERVER_ROOT, request_path);
+        // sprintf(filepath, "%s%s", SERVER_ROOT, request_path); //works too
+        snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT);
     }
     
     
     filedata = file_load(filepath);
     if (filedata == NULL) {
+        // fprintf(stderr, "cannot find system 404 file\n");
+        // exit(3);
+
         resp_404(fd);
+        return;
     }
 
     mime_type = mime_type_get(filepath);
