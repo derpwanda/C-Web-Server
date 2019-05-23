@@ -164,35 +164,49 @@ void get_file(int fd, struct cache *cache, char *request_path)
     struct file_data *filedata; 
     char *mime_type;
 
-
-    if (strcmp(request_path, "/index.html") == 0)
+    struct cache_entry *ce = cache_get(cache, request_path);
+    if (ce != NULL)
     {
-        // sprintf(filepath, "%s/index.html", SERVER_ROOT); //works too
-        snprintf(filepath, sizeof filepath, "%s/index.html", SERVER_ROOT);
-    }else
+        //serve it back
+        send_response(fd, "HTTP/1.1 200 OK", ce->content_type, ce->content, ce->content_length);
+
+    } else 
     {
-        // sprintf(filepath, "%s%s", SERVER_ROOT, request_path); //works too
-        snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT);
-    }
+
+        if (strcmp(request_path, "/index.html") == 0)
+        {
+            // sprintf(filepath, "%s/index.html", SERVER_ROOT); //works too
+            snprintf(filepath, sizeof filepath, "%s/index.html", SERVER_ROOT);
+        }else
+        {
+            // sprintf(filepath, "%s%s", SERVER_ROOT, request_path); //works too
+            snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
+        }
+
+        //load file
+        //outside so else can use
+        filedata = file_load(filepath);
+        if (filedata == NULL) { //why did I have !=???
+            resp_404(fd);
+            return;
+        }
+
+        //store in cache
+        mime_type = mime_type_get(filepath);
+
+        cache_put(cache, request_path, mime_type, filedata->data, filedata->size);
+
+        //serve it back
+        send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+
+        file_free(filedata);
+
+    };
+
     
-    
-    filedata = file_load(filepath);
-    if (filedata == NULL) {
-        // fprintf(stderr, "cannot find system 404 file\n");
-        // exit(3);
-
-        resp_404(fd);
-        return;
-    }
-
-    mime_type = mime_type_get(filepath);
-
-    send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
-
-    file_free(filedata);
 
     // (void)fd; 
-    (void)cache;
+    // (void)cache;
     // (void)request_path;
 }
 
@@ -314,7 +328,6 @@ int main(void)
             continue;
         }
 
-        
 
         // Print out a message that we got the connection
         inet_ntop(their_addr.ss_family,
