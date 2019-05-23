@@ -52,12 +52,39 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 {
     const int max_response_size = 262144;
     char response[max_response_size];
-
+    char *response_body = body;
     // Build HTTP response and store it in response
 
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+
+    time_t t = time(NULL);
+    
+    struct tm *local_time = localtime(&t);
+    //the string returned by localtime already has a \n
+
+    char *timestamp = asctime(local_time); 
+    //asctime converts tm struct to a timestamp
+
+    int response_length = sprintf(
+                response, 
+                "%s\n"
+                "Connection: close\n"
+                "Content-Length: %d\n"
+                "Content-Type: %s\n"
+                "Date: %s\n",
+                header, 
+                content_length, 
+                content_type, 
+                timestamp);
+    
+    //make the body interpretation agnostic
+    memcpy(response + response_length, response_body, content_length);
+    response_length += content_length;
+
+    // printf("response_length: %d\n", response_length);
+    // printf("RESPONSE: %s\n", response);
 
     // Send it all!
     int rv = send(fd, response, response_length, 0);
@@ -67,6 +94,7 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     }
 
     return rv;
+
 }
 
 
@@ -80,12 +108,22 @@ void get_d20(int fd)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
-
+    char number[16];
+    // printf("INSIDE GET_D20\n");
+    int random_num = rand() % 20 + 1;
+    // printf("%d\n", random_num);
+    sprintf(number, "%d\n", random_num);
     // Use send_response() to send it back as text/plain data
 
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", number, sizeof(number));
+
+    // file_free(number);
+
+    //stop warnings
+    // (void)fd;
 }
 
 /**
@@ -99,8 +137,8 @@ void resp_404(int fd)
 
     // Fetch the 404.html file
     snprintf(filepath, sizeof filepath, "%s/404.html", SERVER_FILES);
-    filedata = file_load(filepath);
 
+    filedata = file_load(filepath);
     if (filedata == NULL) {
         // TODO: make this non-fatal
         fprintf(stderr, "cannot find system 404 file\n");
@@ -122,6 +160,54 @@ void get_file(int fd, struct cache *cache, char *request_path)
     ///////////////////
     // IMPLEMENT ME! //
     ///////////////////
+    char filepath[4096];
+    struct file_data *filedata; 
+    char *mime_type;
+
+    struct cache_entry *ce = cache_get(cache, request_path);
+    if (ce != NULL)
+    {
+        //serve it back
+        send_response(fd, "HTTP/1.1 200 OK", ce->content_type, ce->content, ce->content_length);
+
+    } else 
+    {
+
+        if (strcmp(request_path, "/index.html") == 0)
+        {
+            // sprintf(filepath, "%s/index.html", SERVER_ROOT); //works too
+            snprintf(filepath, sizeof filepath, "%s/index.html", SERVER_ROOT);
+        }else
+        {
+            // sprintf(filepath, "%s%s", SERVER_ROOT, request_path); //works too
+            snprintf(filepath, sizeof filepath, "%s%s", SERVER_ROOT, request_path);
+        }
+
+        //load file
+        //outside so else can use
+        filedata = file_load(filepath);
+        if (filedata == NULL) { //why did I have !=???
+            resp_404(fd);
+            return;
+        }
+
+        //store in cache
+        mime_type = mime_type_get(filepath);
+
+        cache_put(cache, request_path, mime_type, filedata->data, filedata->size);
+
+        //serve it back
+        send_response(fd, "HTTP/1.1 200 OK", mime_type, filedata->data, filedata->size);
+
+        file_free(filedata);
+
+    };
+
+    
+
+    // (void)fd; 
+    // (void)cache;
+    // (void)request_path;
 }
 
 /**
@@ -135,6 +221,8 @@ char *find_start_of_body(char *header)
     ///////////////////
     // IMPLEMENT ME! // (Stretch)
     ///////////////////
+    (void)header;
+    return NULL; //stops control reaches end of non-void function
 }
 
 /**
@@ -144,6 +232,10 @@ void handle_http_request(int fd, struct cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
+
+    char method[64];
+    char path[64];
+    char http[64];
 
     // Read request
     int bytes_recvd = recv(fd, request, request_buffer_size - 1, 0);
@@ -159,11 +251,41 @@ void handle_http_request(int fd, struct cache *cache)
     ///////////////////
 
     // Read the first two components of the first line of the request 
+    sscanf(request, "%s %s %s", method, path, http);
+
+    // printf("method: \"%s\"\n", method);
+    // printf("path: \"%s\"\n", path);
+    // printf("http: \"%s\"\n", http);
  
     // If GET, handle the get endpoints
-
+    if (strcmp(method, "GET") == 0)
+    {
     //    Check if it's /d20 and handle that special case
+        if(strcmp(path, "/d20") == 0)
+        {
+            get_d20(fd);
+        } else
     //    Otherwise serve the requested file by calling get_file()
+        {
+            get_file(fd, cache, path);
+        }
+        
+        resp_404(fd); //newfd or listenfd, an int            
+    }
+
+    //    When a file is requested, first check to see if the path to the file is in
+    //    the cache (use the file path as the key).
+
+    //    If it's there, serve it back.
+
+    //    If it's not there:
+
+    //    Load the file from disk (see `file.c`)
+    //    Store it in the cache
+    //    Serve it
+
+    //stop warnings
+    // (void)cache;
 
 
     // (Stretch) If POST, handle the post request
@@ -190,6 +312,7 @@ int main(void)
 
     printf("webserver: waiting for connections on port %s...\n", PORT);
 
+
     // This is the main loop that accepts incoming connections and
     // responds to the request. The main parent process
     // then goes back to waiting for new connections.
@@ -204,6 +327,7 @@ int main(void)
             perror("accept");
             continue;
         }
+
 
         // Print out a message that we got the connection
         inet_ntop(their_addr.ss_family,
